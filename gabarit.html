@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Trouve les drapeaux !</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vert:#0a6b3d; --vert-f:#06482a; --jaune:#fcd116; --rouge:#e31b23; --creme:#fff8e6;
+  --encre:#13241b; --ok:#2ee07a;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--vert-f); color:var(--creme);
+  font-family:"Baloo 2",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  overflow:hidden; user-select:none; -webkit-user-select:none;
+}
+.ecran{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
+  padding:max(12px,env(safe-area-inset-top)) 16px max(12px,env(safe-area-inset-bottom))}
+.ecran.actif{display:flex}
+button{font:inherit;border:0;cursor:pointer;color:inherit}
+.btn{background:var(--jaune);color:var(--encre);font-weight:800;font-size:22px;
+  padding:14px 28px;border-radius:999px;box-shadow:0 5px 0 #b8960a;transition:transform .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #b8960a}
+.btn[disabled]{opacity:.45}
+
+/* bande tricolore */
+.bande{display:flex;width:100%;height:8px;border-radius:4px;overflow:hidden;flex:none}
+.bande i{flex:1}.bande i:nth-child(1){background:var(--vert)}.bande i:nth-child(2){background:var(--jaune)}.bande i:nth-child(3){background:var(--rouge)}
+
+/* accueil */
+#accueil{justify-content:center;gap:18px;text-align:center;
+  background:radial-gradient(circle at 50% 30%,#0e8a4f 0,var(--vert-f) 70%)}
+.etoile{width:84px;height:84px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35));animation:tourne 6s ease-in-out infinite}
+@keyframes tourne{50%{transform:rotate(18deg) scale(1.08)}}
+h1{font-size:44px;line-height:.95;font-weight:800;color:var(--jaune);text-shadow:0 4px 0 rgba(0,0,0,.25)}
+.sous{font-size:18px;opacity:.9;max-width:340px}
+.regles{background:rgba(255,255,255,.08);border-radius:16px;padding:12px 16px;text-align:left;font-size:16px;line-height:1.35;max-width:360px;width:100%}
+.regles b{color:var(--jaune)}
+#prenom{font:inherit;font-size:20px;text-align:center;width:100%;max-width:300px;padding:10px 14px;border-radius:12px;border:3px solid var(--jaune);background:var(--creme);color:var(--encre)}
+.son{position:fixed;top:max(10px,env(safe-area-inset-top));right:12px;background:rgba(0,0,0,.25);border-radius:999px;width:42px;height:42px;font-size:20px;z-index:9}
+
+/* jeu */
+#jeu{gap:8px}
+.hud{width:100%;max-width:480px;padding-right:50px;display:flex;justify-content:space-between;align-items:center;flex:none}
+.manche{font-weight:800;font-size:18px;color:var(--jaune)}
+.score{font-weight:800;font-size:20px;background:rgba(0,0,0,.25);padding:2px 14px;border-radius:999px}
+.chrono{width:100%;max-width:480px;height:10px;background:rgba(255,255,255,.15);border-radius:5px;overflow:hidden;flex:none}
+.chrono i{display:block;height:100%;width:100%;background:var(--jaune);transform-origin:left}
+.consigne{font-size:20px;font-weight:700;text-align:center;flex:none;min-height:30px}
+.scene{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;position:relative}
+.cadre{position:relative;aspect-ratio:9/16;height:min(100%, calc((100vw - 32px)*16/9));max-width:100%;
+  border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.4);background:#000}
+.cadre img{width:100%;height:100%;display:block;object-fit:cover;transition:filter .4s}
+.cadre.cache img{filter:blur(28px) brightness(.5)}
+.zoom{max-height:100%;max-width:100%;border-radius:14px;border:4px solid var(--jaune);box-shadow:0 10px 30px rgba(0,0,0,.4);object-fit:contain}
+.marque{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+.marque.ok{width:54px;height:54px;border:5px solid var(--ok);box-shadow:0 0 0 3px rgba(0,0,0,.4),0 0 18px var(--ok);animation:pop .3s ease-out}
+.marque.non{width:38px;height:38px;color:var(--rouge);font-size:38px;font-weight:800;line-height:38px;text-align:center;text-shadow:0 0 4px #fff;animation:pop .3s ease-out}
+.marque.rate{width:54px;height:54px;border:4px dashed var(--jaune);animation:clign .5s 3}
+.boite{position:absolute;border:4px solid var(--jaune);border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.45);pointer-events:none}
+@keyframes pop{from{transform:translate(-50%,-50%) scale(.2)}}
+@keyframes clign{50%{opacity:.2}}
+.bulle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--creme);color:var(--encre);
+  padding:12px 20px;border-radius:16px;font-weight:800;font-size:24px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:pop2 .3s ease-out;width:max-content;max-width:90%}
+@keyframes pop2{from{transform:translate(-50%,-50%) scale(.5);opacity:0}}
+.bas{width:100%;max-width:480px;flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:64px;justify-content:center}
+.pave{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%}
+.pave button,.choix button{background:var(--creme);color:var(--encre);font-weight:800;border-radius:12px;box-shadow:0 4px 0 #c9bfa5}
+.pave button{font-size:26px;height:52px}
+.choix{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.choix button{font-size:17px;padding:10px 8px;min-height:58px;line-height:1.1}
+.pave button:active,.choix button:active{transform:translateY(3px);box-shadow:0 1px 0 #c9bfa5}
+.choix .vrai{background:var(--ok)}.choix .faux{background:var(--rouge);color:#fff}
+.compteur{font-weight:800;font-size:20px}
+.stepper{display:flex;align-items:center;gap:18px}
+.stepper button{width:64px;height:64px;border-radius:50%;background:var(--creme);color:var(--encre);font-size:36px;font-weight:800;box-shadow:0 4px 0 #c9bfa5}
+.stepper output{font-size:72px;font-weight:800;color:var(--jaune);min-width:110px;text-align:center;line-height:1}
+
+/* carton de manche */
+#carton{justify-content:center;text-align:center;gap:10px;background:var(--jaune);color:var(--encre)}
+#carton .num{font-size:22px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+#carton .titre{font-size:52px;font-weight:800;line-height:1}
+#carton .expl{font-size:19px;max-width:330px}
+#carton.anime .titre{animation:pop2 .45s ease-out}
+
+/* score final */
+#fin{justify-content:center;gap:14px;text-align:center;background:radial-gradient(circle at 50% 25%,#0e8a4f 0,var(--vert-f) 70%)}
+.carte{background:var(--creme);color:var(--encre);border-radius:22px;padding:18px 20px 16px;width:100%;max-width:360px;box-shadow:0 14px 40px rgba(0,0,0,.45);position:relative;overflow:hidden}
+.carte .bande{position:absolute;top:0;left:0;border-radius:0;height:10px}
+.carte .qui{font-size:26px;font-weight:800;margin-top:6px}
+.carte .total{font-size:84px;font-weight:800;line-height:1;color:var(--vert)}
+.carte .pts{font-size:18px;font-weight:700;margin-top:-6px}
+.carte .titre-jeu{font-size:15px;font-weight:700;opacity:.7}
+.carte table{width:100%;margin-top:10px;font-size:16px;border-collapse:collapse}
+.carte td{padding:3px 0;border-top:1px dashed #d8cfb6;text-align:left}
+.carte td+td{text-align:right;font-weight:800}
+.carte .date{font-size:13px;opacity:.6;margin-top:8px}
+.capture{font-size:17px;max-width:330px}
+</style>
+</head>
+<body>
+<button class="son" id="son" aria-label="Couper le son">🔊</button>
+
+<section class="ecran actif" id="accueil">
+  <svg class="etoile" viewBox="0 0 100 100" aria-hidden="true"><polygon fill="#fcd116" stroke="#0a6b3d" stroke-width="5" points="50,4 61,38 97,38 68,59 79,94 50,73 21,94 32,59 3,38 39,38"/></svg>
+  <h1>Trouve les<br>drapeaux !</h1>
+  <p class="sous">Semaine « Made in Sénégal » · le jeu des collègues</p>
+  <div class="regles">
+    <b>4 manches</b>, toutes prises dans notre magasin :<br>
+    ① <b>Compte !</b> : la photo disparaît vite.<br>
+    ② <b>Touche-les tous !</b> : avant la fin du chrono.<br>
+    ③ <b>C'est où ?</b> : quel rayon ?<br>
+    ④ <b>La finale</b> : tout le magasin.<br>
+    Seuls les <b>drapeaux en tissu</b> comptent, pas ceux des affiches !
+  </div>
+  <input id="prenom" maxlength="20" placeholder="Ton prénom" autocomplete="off">
+  <button class="btn" id="jouer">Jouer</button>
+</section>
+
+<section class="ecran" id="carton"><div class="num"></div><div class="titre"></div><div class="expl"></div></section>
+
+<section class="ecran" id="jeu">
+  <div class="bande"><i></i><i></i><i></i></div>
+  <div class="hud"><span class="manche" id="hud-manche"></span><span class="score" id="hud-score">0</span></div>
+  <div class="chrono"><i id="chrono"></i></div>
+  <div class="consigne" id="consigne"></div>
+  <div class="scene" id="scene"></div>
+  <div class="bas" id="bas"></div>
+</section>
+
+<section class="ecran" id="fin">
+  <div class="carte" id="carte"></div>
+  <p class="capture">📸 Fais une <b>capture d'écran</b> et envoie-la dans le groupe !</p>
+  <button class="btn" id="rejouer">Rejouer</button>
+</section>
+
+<script>
+const D = /*DONNEES*/null;
+const $ = s => document.querySelector(s);
+const attendre = ms => new Promise(r => setTimeout(r, ms));
+const melange = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(p => p[1]);
+
+/* ---------- bruitages (de simples sons, aucune musique) ---------- */
+let actx = null, sonActif = true;
+function bip(freq, dur = .12, type = "sine", vol = .25) {
+  if (!sonActif) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur);
+  } catch (e) {}
+}
+const sOk = () => bip(880, .15), sNon = () => bip(140, .22, "square", .18), sTic = () => bip(1200, .03, "sine", .08);
+$("#son").onclick = () => { sonActif = !sonActif; $("#son").textContent = sonActif ? "🔊" : "🔇"; };
+
+/* ---------- état ---------- */
+let score = 0, detail = {};
+function ajoute(pts, manche) {
+  score = Math.max(0, score + pts);
+  detail[manche] = (detail[manche] || 0) + pts;
+  $("#hud-score").textContent = score;
+}
+function montre(id) { document.querySelectorAll(".ecran").forEach(e => e.classList.toggle("actif", e.id === id)); }
+
+/* chrono : renvoie une promesse résolue à la fin ; stop() l'arrête et renvoie le temps restant (0 à 1) */
+let chronoCourant = null;
+function chrono(sec) {
+  const barre = $("#chrono"), debut = performance.now();
+  let fini = false, resolve, raf, dernierTic = sec;
+  const p = new Promise(r => resolve = r);
+  const pas = () => {
+    const reste = Math.max(0, 1 - (performance.now() - debut) / (sec * 1000));
+    barre.style.transform = `scaleX(${reste})`;
+    barre.style.background = reste < .25 ? "var(--rouge)" : "var(--jaune)";
+    const s = Math.ceil(reste * sec);
+    if (s < dernierTic && s <= 3 && s > 0) sTic();
+    dernierTic = s;
+    if (reste <= 0) { fini = true; resolve(0); return; }
+    raf = requestAnimationFrame(pas);
+  };
+  pas();
+  chronoCourant = { p, stop() { if (fini) return 0; fini = true; cancelAnimationFrame(raf);
+    const r = Math.max(0, 1 - (performance.now() - debut) / (sec * 1000)); resolve(r); return r; } };
+  return chronoCourant;
+}
+
+async function carton(num, titre, expl) {
+  const c = $("#carton");
+  c.querySelector(".num").textContent = num;
+  c.querySelector(".titre").textContent = titre;
+  c.querySelector(".expl").textContent = expl;
+  c.classList.remove("anime"); void c.offsetWidth; c.classList.add("anime");
+  montre("carton"); bip(520, .18);
+  await attendre(2200);
+  montre("jeu");
+}
+
+function cadrePhoto(src) {
+  const c = document.createElement("div"); c.className = "cadre";
+  c.innerHTML = `<img src="${src}" alt="" draggable="false">`;
+  $("#scene").replaceChildren(c);
+  return c;
+}
+function bulle(cadre, html) {
+  const b = document.createElement("div"); b.className = "bulle"; b.innerHTML = html; cadre.appendChild(b);
+}
+function bouton(txt) {
+  return new Promise(r => {
+    const b = document.createElement("button"); b.className = "btn"; b.textContent = txt;
+    b.onclick = () => r(); $("#bas").replaceChildren(b);
+  });
+}
+
+/* ---------- manche 1 : Compte ! ---------- */
+async function mancheCompte() {
+  await carton("Manche 1", "Compte !", "Regarde bien : la photo disparaît au bout de 6 secondes.");
+  for (const [i, q] of D.compte.entries()) {
+    $("#hud-manche").textContent = `Compte ! ${i + 1}/${D.compte.length}`;
+    $("#consigne").textContent = "Combien de drapeaux ?";
+    $("#bas").replaceChildren();
+    const cadre = cadrePhoto(q.img);
+    await chrono(6).p;
+    cadre.classList.add("cache");
+    $("#consigne").textContent = "Alors, combien ?";
+    const pave = document.createElement("div"); pave.className = "pave";
+    const rep = await new Promise(r => {
+      for (let n = 0; n <= 9; n++) {
+        const b = document.createElement("button"); b.textContent = n; b.onclick = () => r(n); pave.appendChild(b);
+      }
+      $("#bas").replaceChildren(pave);
+      chrono(10).p.then(() => r(null));
+    });
+    chronoCourant.stop();
+    cadre.classList.remove("cache");
+    let pts = 0;
+    if (rep === q.rep) { pts = 100; sOk(); } else if (rep !== null && Math.abs(rep - q.rep) === 1) { pts = 40; bip(440, .15); } else sNon();
+    ajoute(pts, "Compte !");
+    bulle(cadre, `${q.lieu} : <b>${q.rep}</b> drapeau${q.rep > 1 ? "x" : ""}<br>${pts ? "+" + pts : rep === null ? "Trop tard !" : "Raté !"}`);
+    await bouton("Suivant");
+  }
+}
+
+/* ---------- manche 2 : Touche-les tous ! ---------- */
+async function mancheTouche() {
+  await carton("Manche 2", "Touche-les tous !", "Touche chaque drapeau en tissu. Une erreur coûte 20 points.");
+  for (const [i, q] of D.touche.entries()) {
+    $("#hud-manche").textContent = `Touche ! ${i + 1}/${D.touche.length}`;
+    $("#consigne").textContent = q.lieu;
+    const cadre = cadrePhoto(q.img);
+    const trouves = new Set(), n = q.boites.length;
+    const compteur = document.createElement("div"); compteur.className = "compteur";
+    const maj = () => compteur.textContent = `${trouves.size} / ${n} trouvés`;
+    maj(); $("#bas").replaceChildren(compteur);
+    const ch = chrono(25);
+    cadre.onpointerdown = e => {
+      const r = cadre.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      // zone de toucher : la boîte, élargie aux petits drapeaux (au moins ~44 px)
+      const mx = 22 / r.width, my = 22 / r.height;
+      const k = q.boites.findIndex(([x1, y1, x2, y2], j) => !trouves.has(j) &&
+        x >= Math.min(x1, (x1 + x2) / 2 - mx) && x <= Math.max(x2, (x1 + x2) / 2 + mx) &&
+        y >= Math.min(y1, (y1 + y2) / 2 - my) && y <= Math.max(y2, (y1 + y2) / 2 + my));
+      const m = document.createElement("div");
+      if (k >= 0) {
+        trouves.add(k); const [x1, y1, x2, y2] = q.boites[k];
+        m.className = "marque ok"; m.style.left = (x1 + x2) * 50 + "%"; m.style.top = (y1 + y2) * 50 + "%";
+        sOk(); ajoute(50, "Touche-les tous !"); maj();
+        if (trouves.size === n) ch.stop();
+      } else {
+        m.className = "marque non"; m.textContent = "✕"; m.style.left = x * 100 + "%"; m.style.top = y * 100 + "%";
+        sNon(); ajoute(-20, "Touche-les tous !");
+        setTimeout(() => m.remove(), 700);
+      }
+      cadre.appendChild(m);
+    };
+    const reste = await ch.p;
+    cadre.onpointerdown = null;
+    q.boites.forEach(([x1, y1, x2, y2], j) => {
+      if (trouves.has(j)) return;
+      const m = document.createElement("div"); m.className = "marque rate";
+      m.style.left = (x1 + x2) * 50 + "%"; m.style.top = (y1 + y2) * 50 + "%"; cadre.appendChild(m);
+    });
+    let msg = trouves.size === n ? "Tous trouvés !" : `${trouves.size} sur ${n}`;
+    if (trouves.size === n) { const bonus = Math.round(reste * 25) * 5; ajoute(bonus, "Touche-les tous !"); msg += `<br>Bonus vitesse +${bonus}`; }
+    $("#consigne").textContent = trouves.size === n ? "Bravo !" : "Les cercles jaunes : ceux qui t'ont échappé";
+    compteur.innerHTML = msg.replace("<br>", " · ");
+    await attendre(600);
+    await bouton("Suivant");
+  }
+}
+
+/* ---------- manche 3 : C'est où ? ---------- */
+async function mancheOu() {
+  await carton("Manche 3", "C'est où ?", "Un zoom sur un drapeau. Dans quel coin du magasin est-il ?");
+  for (const [i, q] of D.ou.entries()) {
+    $("#hud-manche").textContent = `C'est où ? ${i + 1}/${D.ou.length}`;
+    $("#consigne").textContent = "Où est ce drapeau ?";
+    const z = document.createElement("img"); z.className = "zoom"; z.src = q.zoom; z.draggable = false;
+    $("#scene").replaceChildren(z);
+    const grille = document.createElement("div"); grille.className = "choix";
+    const ch = chrono(12);
+    const rep = await new Promise(r => {
+      melange(q.choix).forEach(c => {
+        const b = document.createElement("button"); b.textContent = c; b.onclick = () => r(c); grille.appendChild(b);
+      });
+      $("#bas").replaceChildren(grille);
+      ch.p.then(() => r(null));
+    });
+    const reste = ch.stop();
+    const bon = q.choix[0];
+    grille.querySelectorAll("button").forEach(b => {
+      b.disabled = true;
+      if (b.textContent === bon) b.classList.add("vrai"); else if (b.textContent === rep) b.classList.add("faux");
+    });
+    let pts = 0;
+    if (rep === bon) { pts = 100 + Math.round(reste * 10) * 5; sOk(); } else sNon();
+    ajoute(pts, "C'est où ?");
+    await attendre(900);
+    const cadre = cadrePhoto(q.img);
+    const [x1, y1, x2, y2] = q.cadre, b = document.createElement("div"); b.className = "boite";
+    Object.assign(b.style, { left: x1 * 100 + "%", top: y1 * 100 + "%", width: (x2 - x1) * 100 + "%", height: (y2 - y1) * 100 + "%" });
+    cadre.appendChild(b);
+    $("#consigne").textContent = rep === bon ? `Bien vu ! +${pts}` : rep === null ? "Trop tard !" : "Raté !";
+    await attendre(500);
+    const suiv = bouton("Suivant");
+    await suiv;
+  }
+}
+
+/* ---------- finale ---------- */
+async function finale() {
+  await carton("La finale", "Tout le magasin", "Combien de drapeaux en tissu dans TOUT le magasin ? Attention aux doublons !");
+  $("#hud-manche").textContent = "La finale";
+  $("#consigne").textContent = "Dans tout le magasin, il y en a…";
+  let v = 15;
+  const st = document.createElement("div"); st.className = "stepper";
+  st.innerHTML = `<button aria-label="moins">−</button><output>${v}</output><button aria-label="plus">+</button>`;
+  const out = st.querySelector("output");
+  st.children[0].onclick = () => { v = Math.max(0, v - 1); out.textContent = v; sTic(); };
+  st.children[2].onclick = () => { v = Math.min(99, v + 1); out.textContent = v; sTic(); };
+  $("#scene").replaceChildren(st);
+  $("#chrono").style.transform = "scaleX(1)"; $("#chrono").style.background = "var(--jaune)";
+  await bouton("Valider");
+  const ecart = Math.abs(v - D.total);
+  const pts = ecart === 0 ? 300 : ecart === 1 ? 150 : ecart === 2 ? 60 : 0;
+  pts ? sOk() : sNon();
+  ajoute(pts, "La finale");
+  out.textContent = D.total; out.style.color = "var(--ok)";
+  st.querySelectorAll("button").forEach(b => b.style.visibility = "hidden");
+  $("#consigne").innerHTML = `Il y en a <b>${D.total}</b> ! Toi : ${v} · ${pts ? "+" + pts : "Raté !"}`;
+  await bouton("Voir mon score");
+}
+
+/* ---------- score ---------- */
+function fin(prenom) {
+  const lignes = ["Compte !", "Touche-les tous !", "C'est où ?", "La finale"]
+    .map(m => `<tr><td>${m}</td><td>${Math.max(0, detail[m] || 0)}</td></tr>`).join("");
+  const date = new Date().toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
+  const carte = $("#carte");
+  carte.innerHTML = `<div class="bande"><i></i><i></i><i></i></div>
+    <div class="titre-jeu">Trouve les drapeaux ! · Made in Sénégal</div>
+    <div class="qui"></div><div class="total">${score}</div><div class="pts">points</div>
+    <table>${lignes}</table><div class="date">${date}</div>`;
+  carte.querySelector(".qui").textContent = prenom;
+  montre("fin"); bip(660, .12); setTimeout(() => bip(990, .2), 140);
+}
+
+async function partie() {
+  const prenom = $("#prenom").value.trim() || "Un collègue";
+  score = 0; detail = {}; $("#hud-score").textContent = 0;
+  await mancheCompte();
+  await mancheTouche();
+  await mancheOu();
+  await finale();
+  fin(prenom);
+}
+$("#jouer").onclick = () => { bip(520, .05, "sine", .01); partie(); };
+$("#rejouer").onclick = () => montre("accueil");
+</script>
+</body>
+</html>
