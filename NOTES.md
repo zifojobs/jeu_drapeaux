@@ -8,3 +8,7 @@
 - 4 manches : Compte ! (3 photos) · Touche-les tous ! (15 drapeaux encadrés sur 3 photos) · C'est où ? (4 zooms) · finale (25).
 - Son : bruitages seulement, aucune musique.
 - Testé le 01/11 dans Chromium à 390 × 844 : partie complète sans erreur.
+
+## 02/11/2026 — mise en ligne
+- Dépôt **public** `zifojobs/jeu_drapeaux` (choix de Saïbo, informé que les photos du magasin y sont visibles) ; `main` poussé (`b6076ee`).
+- Projet Vercel : refusé par le connecteur (403) ⇒ import à la main par Saïbo sur vercel.com/new, Root Directory `site`. URL : à noter.
